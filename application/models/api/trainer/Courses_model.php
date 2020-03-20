@@ -14,11 +14,14 @@ class Courses_model extends CI_Model {
         $this->db->from('course');
         $query=$this->db->get();
 
-        if($query->num_rows()>0){
+        if($query->num_rows()>0)
+        {
             $result=$query->result();
 
             return $result;
-        }else{
+        }
+        else
+        {
             return false;
         }
     }
@@ -197,8 +200,17 @@ class Courses_model extends CI_Model {
         $this->db->from('section');
         $this->db->where('course_id', $course_id);
         $query=$this->db->get();
+
+            // print_r($this->db->last_query());
+        if($query->num_rows()>0)
+        {
+            $result=$query->result();
+
+
             for ($i=0; $i < count($result) ; $i++) 
             {
+
+                // print_r($result);
                 $this->db->select('*');
                 $this->db->from('lesson');
                 $this->db->where('section_id', $result[$i]->id);
@@ -209,8 +221,15 @@ class Courses_model extends CI_Model {
                     $result[$i]->lessons = $query_->result();
                 }
             }
-
+            // die;
             return $result;
+        }
+        else
+        {
+            return false;
+        }
+
+       
     }
 
     function delete_section($data){

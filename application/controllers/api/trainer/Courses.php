@@ -74,7 +74,6 @@ class Courses extends REST_Controller {
 
             foreach ($results as $result) 
             {
-
                 $section_count = $this->courses_model->section_count($result->id);
                 $lesson_count = $this->courses_model->lesson_count($result->id);
                 $enroll_count = $this->courses_model->enroll_count($result->id);
@@ -85,6 +84,7 @@ class Courses extends REST_Controller {
                 $result->enroll_count = $enroll_count->enroll_count;
                 $result->category = $category->name;
             }
+
             $message = [
                 'status' => 1,
                 'result'=>$results,
@@ -98,6 +98,7 @@ class Courses extends REST_Controller {
                 'message'=>"Something went wrong."
             ];
         }
+        $this->response($message, REST_Controller::HTTP_OK);
     }
     public function get_get($id)
     {
@@ -438,6 +439,10 @@ class Courses extends REST_Controller {
         header('Access-Control-Allow-Headers: Accept,Accept-Language,Content-Language,Content-Type');
         
         $results = $this->courses_model->show_section($course_id);
+
+        // print_r($results);
+        // die();
+
         if( $results != false )
         {
 
