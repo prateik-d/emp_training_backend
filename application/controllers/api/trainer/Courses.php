@@ -462,6 +462,65 @@ class Courses extends REST_Controller {
         $this->set_response($message, REST_Controller::HTTP_OK); // HTTP_OK (200)
     }
 
+    public function get_section_get($section_id)
+    {
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Request-Headers: GET,POST,OPTIONS,DELETE,PUT");
+        header('Access-Control-Allow-Headers: Accept,Accept-Language,Content-Language,Content-Type');
+        
+        $results = $this->courses_model->get_section_by_id($section_id);
+
+        if( $results != false )
+        {
+
+            $message = [
+                'status' => 1,
+                'result'=>$results,
+                'message'=>'Details of section'
+            ];
+        }
+        else
+        {
+            $message = [
+                'status' => 0,
+                'message'=>"Something went wrong."
+            ];
+        }
+        $this->set_response($message, REST_Controller::HTTP_OK); // HTTP_OK (200)
+    }
+
+
+    public function get_lesson_get($lesson_id)
+    {
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Request-Headers: GET,POST,OPTIONS,DELETE,PUT");
+        header('Access-Control-Allow-Headers: Accept,Accept-Language,Content-Language,Content-Type');
+        
+        $results = $this->courses_model->get_lesson($lesson_id);
+
+        // print_r($results);
+        // die();
+
+        if( $results != false )
+        {
+
+            $message = [
+                'status' => 1,
+                'result'=>$results,
+                'message'=>'Details of lesson'
+            ];
+        }
+        else
+        {
+            $message = [
+                'status' => 0,
+                'message'=>"Something went wrong."
+            ];
+        }
+        $this->set_response($message, REST_Controller::HTTP_OK); // HTTP_OK (200)
+    }
+
+
     public function add_section_post()
     {
         try
@@ -552,285 +611,402 @@ class Courses extends REST_Controller {
     }
 
 
-  public function add_lesson_post(){
-    try{
-      header("Access-Control-Allow-Origin: *");
-      header("Access-Control-Request-Headers: GET,POST,OPTIONS,DELETE,PUT");
-      header('Access-Control-Allow-Headers: Accept,Accept-Language,Content-Language,Content-Type');
+    public function add_lesson_post()
+    {
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Request-Headers: GET,POST,OPTIONS,DELETE,PUT");
+        header('Access-Control-Allow-Headers: Accept,Accept-Language,Content-Language,Content-Type');
+        
+        try
+        {
 
-      // echo "<pre>";
-      // print_r($_POST);exit();
-      $data['title'] = html_escape($this->input->post('title'));
-      $data['course_id'] = html_escape($this->input->post('course_id'));
-      $data['section_id'] = html_escape($this->input->post('section_id'));
-      $lesson_type_array = explode('-', $this->input->post('lesson_type'));
-      $lesson_type = $lesson_type_array[0];
-      $data['lesson_type'] = $lesson_type;
-      $data['attachment_type'] = $lesson_type_array[1];
+            // echo "<pre>";
+            // print_r($_POST);exit();
+            $data['title'] = html_escape($this->input->post('title'));
+            $data['course_id'] = html_escape($this->input->post('course_id'));
+            $data['section_id'] = html_escape($this->input->post('section_id'));
+            // $lesson_type_array = explode('-', $this->input->post('lesson_type'));
+            // $lesson_type = $lesson_type_array[0];
+            // $data['lesson_type'] = $lesson_type;
+            $data['lesson_type'] = $this->input->post('lesson_type');
+            $data['summary'] = $this->input->post('summary');
+            // $data['attachment_type'] = $lesson_type_array[1];
 
-      if($lesson_type == 'video'){
+            if($this->input->post('lesson_type') == 'video')
+            {
+                $lesson_provider = $this->input->post('lesson_provider');
+                
+                if ($lesson_provider == 'youtube' || $lesson_provider == 'vimeo') 
+                {
+                    if ($this->input->post('video_url') == "" || $this->input->post('duration') == "") 
+                    {
+                        $message = "Invalid lesson url and duration";
+                    }
+                    $data['video_url'] = html_escape($this->input->post('video_url'));
+                    $duration_formatter = explode(':', $this->input->post('duration'));
+                    $hour = sprintf('%02d', $duration_formatter[0]);
+                    $min = sprintf('%02d', $duration_formatter[1]);
+                    $sec = sprintf('%02d', $duration_formatter[2]);
+                    $data['duration'] = $hour.':'.$min.':'.$sec;
 
-      $lesson_provider = $this->input->post('lesson_provider');
-      if ($lesson_provider == 'youtube' || $lesson_provider == 'vimeo') {
-        if ($this->input->post('video_url') == "" || $this->input->post('duration') == "") {
-          $message = "Invalid lesson url and duration";
-        }
-        $data['video_url'] = html_escape($this->input->post('video_url'));
-        $duration_formatter = explode(':', $this->input->post('duration'));
-        $hour = sprintf('%02d', $duration_formatter[0]);
-        $min = sprintf('%02d', $duration_formatter[1]);
-        $sec = sprintf('%02d', $duration_formatter[2]);
-        $data['duration'] = $hour.':'.$min.':'.$sec;
-
-        $video_details = $this->video_model->getVideoDetails($data['video_url']);
-        $data['video_type'] = $video_details['provider'];
-      }elseif ($lesson_provider == 'html5') {
-        if ($this->input->post('html5_video_url') == "" || $this->input->post('html5_duration') == "") {
-          $message = "Invalid lesson url and duration";
-        }
-        $data['video_url'] = html_escape($this->input->post('html5_video_url'));
-        $duration_formatter = explode(':', $this->input->post('html5_duration'));
-        $hour = sprintf('%02d', $duration_formatter[0]);
-        $min = sprintf('%02d', $duration_formatter[1]);
-        $sec = sprintf('%02d', $duration_formatter[2]);
-        $data['duration'] = $hour.':'.$min.':'.$sec;
-        $data['video_type'] = 'html5';
-      }elseif ($lesson_provider == 'video_upload') {
-        if (!empty($_FILES['video_upload_file']['name']) || $this->input->post('video_upload_duration') != "") {
-          if(!empty($_FILES['video_upload_file']['name'])){
-
-            $file_name = $_FILES['video_upload_file']['name'];   
-            $temp_file_location = $_FILES['video_upload_file']['tmp_name']; 
-
-            $bucketName = AWS_BUCKET_NAME;
-            $IAM_KEY = AWS_IAM_KEY;
-            $IAM_SECRET = AWS_IAM_SECRET;
-           
-            try {
-                $s3 = S3Client::factory(
-                    array(
-                      'credentials' => array(
-                          'key' => $IAM_KEY,
-                          'secret' => $IAM_SECRET
-                      ),
-                      'version' => AWS_VERSION,
-                      'region'  => AWS_REGION
-                    )
-                );
-            }catch (Exception $e) {
-            }
-            $keyName = $file_name;
-            $keyName = time().$file_name;
-            $pathInS3 = 'https://s3.us-east-2.amazonaws.com/' . $bucketName . '/' . $keyName;
+                    $video_details = $this->video_model->getVideoDetails($data['video_url']);
+                    $data['video_type'] = $video_details['provider'];
+                }
+                elseif ($lesson_provider == 'video_upload') 
+                {
+                    if (!empty($_FILES['video_upload']['name']) || $this->input->post('duration') != "") 
+                    {
+                        if(!empty($_FILES['video_upload']['name']))
+                        {
+                            $file_name = $_FILES['video_upload']['name'];   
+                            $temp_file_location = $_FILES['video_upload']['tmp_name']; 
+            
+                            $bucketName = AWS_BUCKET_NAME;
+                            $IAM_KEY = AWS_IAM_KEY;
+                            $IAM_SECRET = AWS_IAM_SECRET;           
+                            try 
+                            {
+                                $s3 = S3Client::factory(
+                                    array(
+                                        'credentials' => array(
+                                            'key' => $IAM_KEY,
+                                            'secret' => $IAM_SECRET
+                                        ),
+                                        'version' => AWS_VERSION,
+                                        'region'  => AWS_REGION
+                                    )
+                                );
+                            }
+                            catch (Exception $e) {}
+                            $keyName = $file_name;
+                            $keyName = time().$file_name;
+                            $pathInS3 = 'https://s3.us-east-2.amazonaws.com/' . $bucketName . '/' . $keyName;
              
-            try { 
-              $result=$s3->putObject(array(
-                'Bucket'     => $bucketName,
-                'Key'        => $keyName,
-                'SourceFile' => $temp_file_location,
-                'ContentType' =>'audio/mpeg', //<-- this is what you need!
-                'ACL'          => 'public-read'//<-- this makes it public so people can see it
-              ));
-              $data['video_url'] = $keyName;
-            } catch (S3Exception $e) {
-                $data['video_url'] = '';
-            } 
-          }else{
-            //$data['video_url'] = '';
-            //echo "no file";exit;
-          }
-        }else{
-          $message = "Invalid lesson url and duration"; 
-        }
+                            try 
+                            { 
+                                $result=$s3->putObject(array(
+                                    'Bucket'     => $bucketName,
+                                    'Key'        => $keyName,
+                                    'SourceFile' => $temp_file_location,
+                                    'ContentType' =>'audio/mpeg', //<-- this is what you need!
+                                    'ACL'          => 'public-read'//<-- this makes it public so people can see it
+                                ));
+                                $data['video_url'] = $keyName;
+                            }
+                            catch (S3Exception $e) {
+                                $data['video_url'] = '';
+                            } 
+                        }
+                        else
+                        {
+                            //$data['video_url'] = '';
+                            //echo "no file";exit;
+                        }
+                    }
+                    else
+                    {
+                        $message = "Invalid lesson url and duration"; 
+                        $status  = '400';
+                    }
+                    if ($_FILES['thumbnail']['name'] != "") 
+                    {
+                        $fileName_thumbnail           = $_FILES['thumbnail']['name'];
+                        $tmp_thumbnail                = explode('.', $fileName_thumbnail);
+                        $fileExtension_thumbnail      = end($tmp_thumbnail);
+                        $uploadable_file_thumbnail    =  md5(uniqid(rand(), true)).'.'.$fileExtension_thumbnail;
+                        $data['attachment'] = $uploadable_file_thumbnail;
 
-        $duration_formatter = explode(':', $this->input->post('video_upload_duration'));
-        $hour = sprintf('%02d', $duration_formatter[0]);
-        $min = sprintf('%02d', $duration_formatter[1]);
-        $sec = sprintf('%02d', $duration_formatter[2]);
-        $data['duration'] = $hour.':'.$min.':'.$sec;
-        $data['video_type'] = 'video_upload';
-      } else {
-        $message = "Invalid lesson provider";
-      }
-    
-      }else{
-        if ($_FILES['attachment']['name'] == "") {
-          $message = "Invalid attachment";
-        }else{
-          $fileName           = $_FILES['attachment']['name'];
-          $tmp                = explode('.', $fileName);
-          $fileExtension      = end($tmp);
-          $uploadable_file    =  md5(uniqid(rand(), true)).'.'.$fileExtension;
-          $data['attachment'] = $uploadable_file;
-          if (!file_exists('uploads/lesson_files')) {
-            mkdir('uploads/lesson_files', 0777, true);
-          }
-          move_uploaded_file($_FILES['attachment']['tmp_name'], 'uploads/lesson_files/'.$uploadable_file);
-        }
-      }
 
-      $data['date_added'] = strtotime(date('D, d-M-Y'));
-      $data['summary'] = $this->input->post('summary');
-      if ($_FILES['thumbnail']['name'] != "") {
-        if (!file_exists('uploads/thumbnails/lesson_thumbnails')) {
-          mkdir('uploads/thumbnails/lesson_thumbnails', 0777, true);
-        }
-        move_uploaded_file($_FILES['thumbnail']['tmp_name'], 'uploads/thumbnails/lesson_thumbnails/inserted_id.jpg');
-      }
-
-      $result = $this->courses_model->add_lesson($data);
-      if( $result == true ){
-        $message = "Lesson Successfully Created";
-      }else{
-        $message = "Lesson Not created";
-      }
-      $this->response($message, REST_Controller::HTTP_OK);
-      // $inserted_id = $this->db->insert_id();
-    }catch (Exception $e) {
-      $this->response('Something wents wrong', REST_Controller::HTTP_OK);
-    }
-  }
-
-  public function edit_lesson_post(){
-    try{
-
-      header("Access-Control-Allow-Origin: *");
-      header("Access-Control-Request-Headers: GET,POST,OPTIONS,DELETE,PUT");
-      header('Access-Control-Allow-Headers: Accept,Accept-Language,Content-Language,Content-Type');
-
-      $data['id'] = html_escape($this->input->post('id'));
-      $data['title'] = html_escape($this->input->post('title'));
-      $data['course_id'] = html_escape($this->input->post('course_id'));
-      $data['section_id'] = html_escape($this->input->post('section_id'));
-      $lesson_type_array = explode('-', $this->input->post('lesson_type'));
-      $lesson_type = $lesson_type_array[0];
-      $data['lesson_type'] = $lesson_type;
-      $data['attachment_type'] = $lesson_type_array[1];
-
-      if($lesson_type == 'video'){
-
-      $lesson_provider = $this->input->post('lesson_provider');
-      if ($lesson_provider == 'youtube' || $lesson_provider == 'vimeo') {
-        if ($this->input->post('video_url') == "" || $this->input->post('duration') == "") {
-          $message = "Invalid lesson url and duration";
-        }
-        $data['video_url'] = html_escape($this->input->post('video_url'));
-        $duration_formatter = explode(':', $this->input->post('duration'));
-        $hour = sprintf('%02d', $duration_formatter[0]);
-        $min = sprintf('%02d', $duration_formatter[1]);
-        $sec = sprintf('%02d', $duration_formatter[2]);
-        $data['duration'] = $hour.':'.$min.':'.$sec;
-
-        $video_details = $this->video_model->getVideoDetails($data['video_url']);
-        $data['video_type'] = $video_details['provider'];
-      }elseif ($lesson_provider == 'html5') {
-        if ($this->input->post('html5_video_url') == "" || $this->input->post('html5_duration') == "") {
-          $message = "Invalid lesson url and duration";
-        }
-        $data['video_url'] = html_escape($this->input->post('html5_video_url'));
-        $duration_formatter = explode(':', $this->input->post('html5_duration'));
-        $hour = sprintf('%02d', $duration_formatter[0]);
-        $min = sprintf('%02d', $duration_formatter[1]);
-        $sec = sprintf('%02d', $duration_formatter[2]);
-        $data['duration'] = $hour.':'.$min.':'.$sec;
-        $data['video_type'] = 'html5';
-      }elseif ($lesson_provider == 'video_upload') {
-        if (!empty($_FILES['video_upload_file']['name']) || $this->input->post('video_upload_duration') != "") {
-          if(!empty($_FILES['video_upload_file']['name'])){
-
-            $file_name = $_FILES['video_upload_file']['name'];   
-            $temp_file_location = $_FILES['video_upload_file']['tmp_name']; 
-
-            $bucketName = AWS_BUCKET_NAME;
-            $IAM_KEY = AWS_IAM_KEY;
-            $IAM_SECRET = AWS_IAM_SECRET;
-           
-            try {
-                $s3 = S3Client::factory(
-                    array(
-                      'credentials' => array(
-                          'key' => $IAM_KEY,
-                          'secret' => $IAM_SECRET
-                      ),
-                      'version' => AWS_VERSION,
-                      'region'  => AWS_REGION
-                    )
-                );
-            }catch (Exception $e) {
+                        if (!file_exists('uploads/thumbnails/lesson_thumbnails')) 
+                        {
+                            mkdir('uploads/thumbnails/lesson_thumbnails', 0777, true);
+                        }
+                        // move_uploaded_file($_FILES['thumbnail']['tmp_name'], 'uploads/thumbnails/lesson_thumbnails/inserted_id.jpg');
+                        move_uploaded_file($_FILES['thumbnail']['tmp_name'], 'uploads/thumbnails/lesson_thumbnails/'.$uploadable_file_thumbnail);
+                    }
+                    $duration_formatter = explode(':', $this->input->post('duration'));
+                    $hour = sprintf('%02d', $duration_formatter[0]);
+                    $min = sprintf('%02d', $duration_formatter[1]);
+                    $sec = sprintf('%02d', $duration_formatter[2]);
+                    $data['duration'] = $hour.':'.$min.':'.$sec;
+                    $data['video_type'] = 'video_upload';
+                } 
+                else 
+                {
+                    $message = "Invalid lesson provider";
+                    $status  = '400';
+                }    
             }
-            $keyName = $file_name;
-            $keyName = time().$file_name;
-            $pathInS3 = 'https://s3.us-east-2.amazonaws.com/' . $bucketName . '/' . $keyName;
-             
-            try { 
-              $result=$s3->putObject(array(
-                'Bucket'     => $bucketName,
-                'Key'        => $keyName,
-                'SourceFile' => $temp_file_location,
-                'ContentType' =>'audio/mpeg', //<-- this is what you need!
-                'ACL'          => 'public-read'//<-- this makes it public so people can see it
-              ));
-              $data['video_url'] = $keyName;
-            } catch (S3Exception $e) {
-                $data['video_url'] = '';
-            } 
-          }else{
-            //$data['video_url'] = '';
-            //echo "no file";exit;
-          }
-        }else{
-          $message = "Invalid lesson url and duration"; 
-        }
+            else
+            {
 
-        $duration_formatter = explode(':', $this->input->post('video_upload_duration'));
-        $hour = sprintf('%02d', $duration_formatter[0]);
-        $min = sprintf('%02d', $duration_formatter[1]);
-        $sec = sprintf('%02d', $duration_formatter[2]);
-        $data['duration'] = $hour.':'.$min.':'.$sec;
-        $data['video_type'] = 'video_upload';
-      } else {
-        $message = "Invalid lesson provider";
-      }
-    
-      }else{
-        if ($_FILES['attachment']['name'] == "") {
-          $message = "Invalid attachment";
-        }else{
-          $fileName           = $_FILES['attachment']['name'];
-          $tmp                = explode('.', $fileName);
-          $fileExtension      = end($tmp);
-          $uploadable_file    =  md5(uniqid(rand(), true)).'.'.$fileExtension;
-          $data['attachment'] = $uploadable_file;
-          if (!file_exists('uploads/lesson_files')) {
-            mkdir('uploads/lesson_files', 0777, true);
-          }
-          move_uploaded_file($_FILES['attachment']['tmp_name'], 'uploads/lesson_files/'.$uploadable_file);
-        }
-      }
 
-      $data['date_added'] = strtotime(date('D, d-M-Y'));
-      $data['summary'] = $this->input->post('summary');
-      if ($_FILES['thumbnail']['name'] != "") {
-        if (!file_exists('uploads/thumbnails/lesson_thumbnails')) {
-          mkdir('uploads/thumbnails/lesson_thumbnails', 0777, true);
-        }
-        move_uploaded_file($_FILES['thumbnail']['tmp_name'], 'uploads/thumbnails/lesson_thumbnails/inserted_id.jpg');
-      }
 
-      $result = $this->courses_model->update_lesson($data);
-      if( $result == true){
-        $message = "Lesson Successfully Updated";
-      }else{
-        $message = "Not Updated";
-      }
-      $this->response($message, REST_Controller::HTTP_OK);
-      // $inserted_id = $this->db->insert_id();
-    }catch (Exception $e) {
-      $this->response('Something wents wrong', REST_Controller::HTTP_OK);
+                if ($_FILES['attachment']['name'] == "") 
+                {
+                    $message = "Invalid attachment";
+                    $status  = '400';
+                }
+                else
+                {
+                    $fileName           = $_FILES['attachment']['name'];
+                    $tmp                = explode('.', $fileName);
+                    $fileExtension      = end($tmp);
+                    $uploadable_file    =  md5(uniqid(rand(), true)).'.'.$fileExtension;
+                    $data['attachment'] = $uploadable_file;
+                    if (!file_exists('uploads/lesson_files')) 
+                    {
+                        mkdir('uploads/lesson_files', 0777, true);
+                    }
+                    move_uploaded_file($_FILES['attachment']['tmp_name'], 'uploads/lesson_files/'.$uploadable_file);
+                }
+            }
+
+            $data['date_added'] = strtotime(date('D, d-M-Y'));
+
+            // if($_FILES['thumbnail'])
+            // {
+
+            //     if ($_FILES['thumbnail']['name'] != "") 
+            //     {
+            //         $fileName_thumbnail           = $_FILES['thumbnail']['name'];
+            //         $tmp_thumbnail                = explode('.', $fileName_thumbnail);
+            //         $fileExtension_thumbnail      = end($tmp_thumbnail);
+            //         $uploadable_file_thumbnail    =  md5(uniqid(rand(), true)).'.'.$fileExtension_thumbnail;
+            //         $data['attachment'] = $uploadable_file_thumbnail;
+
+
+            //         if (!file_exists('uploads/thumbnails/lesson_thumbnails')) 
+            //         {
+            //             mkdir('uploads/thumbnails/lesson_thumbnails', 0777, true);
+            //         }
+            //         // move_uploaded_file($_FILES['thumbnail']['tmp_name'], 'uploads/thumbnails/lesson_thumbnails/inserted_id.jpg');
+            //         move_uploaded_file($_FILES['thumbnail']['tmp_name'], 'uploads/thumbnails/lesson_thumbnails/'.$uploadable_file_thumbnail);
+            //     }
+            // }
+            $result = $this->courses_model->add_lesson($data);
+            if( $result == true )
+            {
+                $message = "Lesson Successfully Created";
+                $status  = '200';
+            }
+            else
+            {
+                $message = "Lesson Not created";
+                $status  = '400';
+            }
+            $feed = array(
+                            'status' => $status, 
+                            'message' => $message, 
+                        );
+            $this->response($feed, REST_Controller::HTTP_OK);
+        }
+        catch (Exception $e) 
+        {
+            $this->response('Something wents wrong', REST_Controller::HTTP_OK);
+        }
     }
-  }
 
-  public function delete_lesson_get($id){
+    public function edit_lesson_post()
+    {
+        try
+        {
+
+            header("Access-Control-Allow-Origin: *");
+            header("Access-Control-Request-Headers: GET,POST,OPTIONS,DELETE,PUT");
+            header('Access-Control-Allow-Headers: Accept,Accept-Language,Content-Language,Content-Type');
+
+            $data['id'] = html_escape($this->input->post('id'));
+            $data['title'] = html_escape($this->input->post('title'));
+            $data['course_id'] = html_escape($this->input->post('course_id'));
+            $data['section_id'] = html_escape($this->input->post('section_id'));
+            // $lesson_type_array = explode('-', $this->input->post('lesson_type'));
+            // $lesson_type = $lesson_type_array[0];
+            // $data['lesson_type'] = $lesson_type;
+            // $data['attachment_type'] = $lesson_type_array[1];
+
+            $data['lesson_type'] = $this->input->post('lesson_type');
+            $data['summary'] = $this->input->post('summary');
+            // $data['lesson_provider'] = $this->input->post('lesson_provider');
+            
+
+            if($this->input->post('lesson_type') == 'video')
+            {
+                $lesson_provider = $this->input->post('lesson_provider');
+                if ($lesson_provider == 'youtube' || $lesson_provider == 'vimeo') 
+                {
+                    if ($this->input->post('video_url') == "" || $this->input->post('duration') == "") 
+                    {
+                        $message = "Invalid lesson url and duration";
+                        $status  = '400';
+                    }
+                    $data['video_url'] = html_escape($this->input->post('video_url'));
+                    $duration_formatter = explode(':', $this->input->post('duration'));
+                    $hour = sprintf('%02d', $duration_formatter[0]);
+                    $min = sprintf('%02d', $duration_formatter[1]);
+                    $sec = sprintf('%02d', $duration_formatter[2]);
+                    $data['duration'] = $hour.':'.$min.':'.$sec;
+
+                    $video_details = $this->video_model->getVideoDetails($data['video_url']);
+                    $data['video_type'] = $video_details['provider'];
+                }
+                // // elseif ($lesson_provider == 'html5') 
+                // // {
+                // //     if ($this->input->post('html5_video_url') == "" || $this->input->post('html5_duration') == "") 
+                // //     {
+                // //         $message = "Invalid lesson url and duration";
+                // //     }
+                // //     $data['video_url'] = html_escape($this->input->post('html5_video_url'));
+                // //     $duration_formatter = explode(':', $this->input->post('html5_duration'));
+                // //     $hour = sprintf('%02d', $duration_formatter[0]);
+                // //     $min = sprintf('%02d', $duration_formatter[1]);
+                // //     $sec = sprintf('%02d', $duration_formatter[2]);
+                // //     $data['duration'] = $hour.':'.$min.':'.$sec;
+                // //     $data['video_type'] = 'html5';
+                // // }
+                elseif ($lesson_provider == 'video_upload')
+                {
+                    if (!empty($_FILES['video_upload']['name']) || $this->input->post('duration') != "") 
+                    {
+                        if(!empty($_FILES['video_upload']['name']))
+                        {
+                            $file_name = $_FILES['video_upload']['name'];   
+                            $temp_file_location = $_FILES['video_upload']['tmp_name']; 
+
+                            $bucketName = AWS_BUCKET_NAME;
+                            $IAM_KEY = AWS_IAM_KEY;
+                            $IAM_SECRET = AWS_IAM_SECRET;
+                           
+                            try 
+                            {
+                                $s3 = S3Client::factory(
+                                    array(
+                                      'credentials' => array(
+                                          'key' => $IAM_KEY,
+                                          'secret' => $IAM_SECRET
+                                      ),
+                                      'version' => AWS_VERSION,
+                                      'region'  => AWS_REGION
+                                    )
+                                );
+                            }
+                            catch (Exception $e) {}
+                            $keyName = $file_name;
+                            $keyName = time().$file_name;
+                            $pathInS3 = 'https://s3.us-east-2.amazonaws.com/' . $bucketName . '/' . $keyName;
+             
+                            try 
+                            { 
+                                $result=$s3->putObject(array(
+                                    'Bucket'     => $bucketName,
+                                    'Key'        => $keyName,
+                                    'SourceFile' => $temp_file_location,
+                                    'ContentType' =>'audio/mpeg', //<-- this is what you need!
+                                    'ACL'          => 'public-read'//<-- this makes it public so people can see it
+                                ));
+                                $data['video_url'] = $keyName;
+                            } 
+                            catch (S3Exception $e) 
+                            {
+                                $data['video_url'] = '';
+                            } 
+                        }
+                        else
+                        {
+                            //$data['video_url'] = '';
+                            //echo "no file";exit;
+                        }
+                    }
+                    else
+                    {
+                        $message = "Invalid lesson url and duration"; 
+                        $status  = '400';
+                    }
+
+                    $duration_formatter = explode(':', $this->input->post('duration'));
+                    $hour = sprintf('%02d', $duration_formatter[0]);
+                    $min = sprintf('%02d', $duration_formatter[1]);
+                    $sec = sprintf('%02d', $duration_formatter[2]);
+                    $data['duration'] = $hour.':'.$min.':'.$sec;
+                    $data['video_type'] = 'video_upload';
+                }
+                else 
+                {
+                    $message = "Invalid lesson provider";
+                    $status  = '400';
+                }
+            }
+            else
+            {
+                if ($_FILES['attachment']['name'] == "") 
+                {
+                    $message = "Invalid attachment";
+                    $status  = '400';
+                }
+                else
+                {
+                    $fileName           = $_FILES['attachment']['name'];
+                    $tmp                = explode('.', $fileName);
+                    $fileExtension      = end($tmp);
+                    $uploadable_file    =  md5(uniqid(rand(), true)).'.'.$fileExtension;
+                    $data['attachment'] = $uploadable_file;
+                    if (!file_exists('uploads/lesson_files')) 
+                    {
+                        mkdir('uploads/lesson_files', 0777, true);
+                    }
+                    move_uploaded_file($_FILES['attachment']['tmp_name'], 'uploads/lesson_files/'.$uploadable_file);
+                }
+            }
+
+            $data['date_added'] = strtotime(date('D, d-M-Y'));
+
+            if($_POST['thumbnail'] != '')
+            {
+                if ($_FILES['thumbnail']['name'] != "") 
+                {
+                    $fileName_thumbnail           = $_FILES['thumbnail']['name'];
+                    $tmp_thumbnail                = explode('.', $fileName_thumbnail);
+                    $fileExtension_thumbnail      = end($tmp_thumbnail);
+                    $uploadable_file_thumbnail    =  md5(uniqid(rand(), true)).'.'.$fileExtension_thumbnail;
+                    $data['attachment'] = $uploadable_file_thumbnail;
+
+
+                    if (!file_exists('uploads/thumbnails/lesson_thumbnails')) 
+                    {
+                        mkdir('uploads/thumbnails/lesson_thumbnails', 0777, true);
+                    }
+                    // // move_uploaded_file($_FILES['thumbnail']['tmp_name'], 'uploads/thumbnails/lesson_thumbnails/inserted_id.jpg');
+                    move_uploaded_file($_FILES['thumbnail']['tmp_name'], 'uploads/thumbnails/lesson_thumbnails/'.$uploadable_file_thumbnail);
+                }
+            }
+
+            $result = $this->courses_model->update_lesson($data);
+            if( $result == true)
+            {
+                $message = "Lesson Successfully Updated";
+                $status  = '200';
+            }
+            else
+            {
+                $message = "Not Updated";
+                $status  = '400';
+            }
+
+            $feed = array(
+                            'status' => $status, 
+                            'message' => $message, 
+                        );
+            $this->response($feed, REST_Controller::HTTP_OK);
+            // $inserted_id = $this->db->insert_id();
+        }
+        catch (Exception $e) 
+        {
+            $this->response('Something wents wrong', REST_Controller::HTTP_OK);
+        }
+        // $this->response($_POST, REST_Controller::HTTP_OK);
+    }
+
+   public function delete_lesson_get($id){
     try{
       header("Access-Control-Allow-Origin: *");
       header("Access-Control-Request-Headers: GET,POST,OPTIONS,DELETE,PUT");

@@ -252,6 +252,24 @@ class Courses_model extends CI_Model {
         return true;
     }
 
+    function get_lesson($id)
+    {
+        $this->db->select('*');
+        $this->db->from('lesson');
+        $this->db->where('id', $id);
+        $query=$this->db->get();
+
+        if($query->num_rows()>0)
+        {
+            $result=$query->row();
+            return $result;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
     function add_lesson($data){
         if(!is_null($data)){
             $this->db->set($data);
@@ -265,7 +283,7 @@ class Courses_model extends CI_Model {
     function update_lesson($data){
         $this->db->set($data);
         $this->db->where('id',$data['id']);
-        $re = $this->db->get('lesson');
+        $this->db->update('lesson');
         $afftectedRows = $this->db->affected_rows();
         if($afftectedRows > 0){
             return true;
