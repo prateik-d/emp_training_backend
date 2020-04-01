@@ -180,68 +180,68 @@ class Courses extends REST_Controller {
 
 
             
-            // if(!empty($_FILES['video_upload']['name']))
-            // {
-            //     $files = array('files' => $_FILES);
+            if(!empty($_FILES['video_upload']['name']))
+            {
+                $files = array('files' => $_FILES);
             
 
-            //     $file_name = $_FILES['video_upload']['name'];   
-            //     $temp_file_location = $_FILES['video_upload']['tmp_name']; 
-            //     $bucketName = AWS_BUCKET_NAME;
-            //     $IAM_KEY = AWS_IAM_KEY;
-            //     $IAM_SECRET = AWS_IAM_SECRET;
+                $file_name = $_FILES['video_upload']['name'];   
+                $temp_file_location = $_FILES['video_upload']['tmp_name']; 
+                $bucketName = AWS_BUCKET_NAME;
+                $IAM_KEY = AWS_IAM_KEY;
+                $IAM_SECRET = AWS_IAM_SECRET;
                 
-            //     try 
-            //     {
-            //         $s3 = S3Client::factory(
-            //             array(
-            //                 'credentials' => array(
-            //                     'key' => $IAM_KEY,
-            //                     'secret' => $IAM_SECRET
-            //                 ),
-            //                 'version' => AWS_VERSION,
-            //                 'region'  => AWS_REGION
-            //             )
-            //         );
-            //     }
+                try 
+                {
+                    $s3 = S3Client::factory(
+                        array(
+                            'credentials' => array(
+                                'key' => $IAM_KEY,
+                                'secret' => $IAM_SECRET
+                            ),
+                            'version' => AWS_VERSION,
+                            'region'  => AWS_REGION
+                        )
+                    );
+                }
 
-            //     catch (Exception $e) 
-            //     {
+                catch (Exception $e) 
+                {
 
-            //     }
+                }
 
-            //     $keyName=$file_name;
-            //     $keyName=time().$file_name;
-            //     $pathInS3 = 'https://s3.us-east-2.amazonaws.com/' . $bucketName . '/' . $keyName;
+                $keyName=$file_name;
+                $keyName=time().$file_name;
+                $pathInS3 = 'https://s3.us-east-2.amazonaws.com/' . $bucketName . '/' . $keyName;
                 
-            //     try
-            //     {
-            //         $result=$s3->putObject(array(
-            //             'Bucket'     => $bucketName,
-            //             'Key'        => $keyName,
-            //             'SourceFile' => $temp_file_location,
-            //             'ContentType' =>'audio/mpeg',
-            //             'ACL'          => 'public-read'
-            //         ));  
-            //         $data['video_url'] = $keyName;
-            //     }
-            //     catch (S3Exception $e) 
-            //     {
-            //         $data['video_url'] = '';
-            //         die('Error:' . $e->getMessage());
-            //     } 
-            // }
-            // else
-            // {
-            //     if($course_overview_provider != "video_upload")
-            //     {
-            //         $data['video_url'] = html_escape($this->input->post('course_url'));
-            //     }
-            //     else
-            //     {
-            //         $data['video_url'] = '';
-            //     }
-            // }
+                try
+                {
+                    $result=$s3->putObject(array(
+                        'Bucket'     => $bucketName,
+                        'Key'        => $keyName,
+                        'SourceFile' => $temp_file_location,
+                        'ContentType' =>'audio/mpeg',
+                        'ACL'          => 'public-read'
+                    ));  
+                    $data['video_url'] = $keyName;
+                }
+                catch (S3Exception $e) 
+                {
+                    $data['video_url'] = '';
+                    die('Error:' . $e->getMessage());
+                } 
+            }
+            else
+            {
+                if($course_overview_provider != "video_upload")
+                {
+                    $data['video_url'] = html_escape($this->input->post('course_url'));
+                }
+                else
+                {
+                    $data['video_url'] = '';
+                }
+            }
            
 
             if ($_FILES['thumbnail']['name'] != "") 
@@ -309,106 +309,149 @@ class Courses extends REST_Controller {
         // $this->response($_POST, REST_Controller::HTTP_OK);
     }
 
-    public function edit_post(){
-        try{
-          header("Access-Control-Allow-Origin: *");
-          header("Access-Control-Request-Headers: GET,POST,OPTIONS,DELETE,PUT");
-          header('Access-Control-Allow-Headers: Accept,Accept-Language,Content-Language,Content-Type');
-
-          $data['id'] = $this->input->post('id');
-          $data['title'] = html_escape($this->input->post('title'));
-          $data['short_description'] = $this->input->post('short_description');
-          $data['description'] = $this->input->post('description');
-          $category_details = $this->courses_model->get_category_details_by_id($this->input->post('sub_category_id'))->row_array();
-          $data['category_id'] = $category_details['parent'];
-          $data['sub_category_id'] = $this->input->post('sub_category_id');
-          $data['level'] = $this->input->post('level');
-          $data['language'] = $this->input->post('language_made_in');
-          $data['is_top_course'] = $this->input->post('is_top_course');
-          $data['is_free_course'] = $this->input->post('is_free_course');
-          $data['course_overview_provider'] = $this->input->post('course_overview_provider');
-          $course_overview_provider = $this->input->post('course_overview_provider');
-          if(!empty($_FILES['video_upload']['name'])){
-
-            $file_name = $_FILES['video_upload']['name'];   
-            $temp_file_location = $_FILES['video_upload']['tmp_name']; 
-            $bucketName = AWS_BUCKET_NAME;
-            $IAM_KEY = AWS_IAM_KEY;
-            $IAM_SECRET = AWS_IAM_SECRET;
-            try {
-              $s3 = S3Client::factory(
-                  array(
-                      'credentials' => array(
-                      'key' => $IAM_KEY,
-                      'secret' => $IAM_SECRET
-                  ),
-                  'version' => AWS_VERSION,
-                  'region'  => AWS_REGION
-                  )
-              );
-            } 
-            catch (Exception $e) {}
-            $keyName=$file_name;
-            $keyName=time().$file_name;
-            $pathInS3 = 'https://s3.us-east-2.amazonaws.com/' . $bucketName . '/' . $keyName;
-            try{
-                $result=$s3->putObject(array(
-                    'Bucket'     => $bucketName,
-                    'Key'        => $keyName,
-                    'SourceFile' => $temp_file_location,
-                    'ContentType' =>'audio/mpeg',
-                    'ACL'          => 'public-read'
-                ));  
-                $data['video_url'] = $keyName;
-            }catch (S3Exception $e) {
-                $data['video_url'] = '';
-                die('Error:' . $e->getMessage());
-            } 
-          }else{
-            if($course_overview_provider != "video_upload"){
-              $data['video_url'] = html_escape($this->input->post('course_overview_url'));
-            }else{
-              $data['video_url'] = '';
-            }
-          }
-          $course_media_files = themeConfiguration(get_frontend_settings('theme'), 'course_media_files');
-          foreach ($course_media_files as $course_media => $size){
-            if ($_FILES[$course_media]['name'] != "") {
-              // move_uploaded_file($_FILES[$course_media]['tmp_name'], 'uploads/thumbnails/course_thumbnails/'.$course_media.'_'.get_frontend_settings('theme').'_'.$course_id.'.jpg');
-              move_uploaded_file($_FILES[$course_media]['tmp_name'], 'uploads/thumbnails/course_thumbnails/'.$course_media.'_'.get_frontend_settings('theme').'.jpg');
-
-            }
-          }
-          $data['thumbnail'] = $_FILES[$course_media]['name'];
-          $data['date_added'] = strtotime(date('D, d-M-Y'));
-          // $data['user_id'] = $this->session->userdata('user_id');
-          $data['user_id'] = 1;
-          // $admin_details = $this->user_model->get_admin_details()->row_array();
-          if ($admin_details['id'] = $data['user_id']) {
-            $data['is_admin'] = 1;
-          }else{
-            $data['is_admin'] = 0;
-          }
-          if ($param1 = "save_to_draft"){
-            $data['status'] = 'draft';
-          }else{
-            if (true == true) {
-              $data['status'] = 'active';
-            }else{
-              $data['status'] = 'pending';
-            }
-          }
-          $result = $this->courses_model->update($data);
-          if( $result == true){
-            $message = "Course Successfully Updated";
-          }else{
-            $message = "Not Updated";
-          }
-          $this->response($message, REST_Controller::HTTP_OK);
-        } catch (Exception $e) 
+    public function edit_post()
+    {
+        try
         {
-          $this->response('Something wents wrong', REST_Controller::HTTP_OK);
+            header("Access-Control-Allow-Origin: *");
+            header("Access-Control-Request-Headers: GET,POST,OPTIONS,DELETE,PUT");
+            header('Access-Control-Allow-Headers: Accept,Accept-Language,Content-Language,Content-Type');
+
+            $data['id'] = $this->input->post('id');
+            $data['title'] = html_escape($this->input->post('title'));
+            $data['short_description'] = $this->input->post('short_desc');
+            $data['description'] = $this->input->post('desc');
+
+            $category_details = $this->courses_model->get_category_details_by_id($this->input->post('sub_category_id'))->row_array();
+            
+            $data['category_id'] = $category_details['parent'];
+            $data['sub_category_id'] = $this->input->post('sub_category_id');
+            $data['level'] = $this->input->post('level');
+            $data['language'] = $this->input->post('language_made_in');
+            // $data['is_top_course'] = $this->input->post('is_top_course');
+            $data['is_free_course'] = '1';
+            $data['is_top_course'] = '0';
+
+            $data['course_overview_provider'] = $this->input->post('course_provider');
+            $course_overview_provider = $this->input->post('course_provider');
+
+
+            
+            if(!empty($_FILES['video_upload']['name']))
+            {
+
+                $file_name = $_FILES['video_upload']['name'];   
+                $temp_file_location = $_FILES['video_upload']['tmp_name']; 
+                $bucketName = AWS_BUCKET_NAME;
+                $IAM_KEY = AWS_IAM_KEY;
+                $IAM_SECRET = AWS_IAM_SECRET;
+                try 
+                {
+                  $s3 = S3Client::factory(
+                      array(
+                          'credentials' => array(
+                          'key' => $IAM_KEY,
+                          'secret' => $IAM_SECRET
+                      ),
+                      'version' => AWS_VERSION,
+                      'region'  => AWS_REGION
+                      )
+                  );
+                } 
+                catch (Exception $e) {}
+                $keyName=$file_name;
+                $keyName=time().$file_name;
+                $pathInS3 = 'https://s3.us-east-2.amazonaws.com/' . $bucketName . '/' . $keyName;
+                try
+                {
+                    $result=$s3->putObject(array(
+                        'Bucket'     => $bucketName,
+                        'Key'        => $keyName,
+                        'SourceFile' => $temp_file_location,
+                        'ContentType' =>'audio/mpeg',
+                        'ACL'          => 'public-read'
+                    ));  
+                    $data['video_url'] = $keyName;
+                }catch (S3Exception $e) {
+                    $data['video_url'] = '';
+                    die('Error:' . $e->getMessage());
+                } 
+            }
+            else
+            {
+                if($course_overview_provider != "video_upload")
+                {
+                    $data['video_url'] = html_escape($this->input->post('course_overview_url'));
+                }
+                else
+                {
+                    $data['video_url'] = '';
+                }
+
+
+            
+            }
+            if(!empty($_FILES['video_upload']['name']))
+                {
+
+                    if ($_FILES['thumbnail']['name'] != "") 
+                    {
+
+                        $config['upload_path']          = FCPATH.'/uploads/thumbnails/course_thumbnails/';
+                        $config['allowed_types']        = 'gif|jpg|png|jpeg';
+                        $config['max_size']             = 500;
+                        $config['file_name']            = time();
+
+
+                        $this->load->library('upload', $config);
+                        if ( ! $this->upload->do_upload('thumbnail')) 
+                        {
+                                $data = array(
+                                    'status' => '400', 
+                                    'error' => $this->upload->display_errors(), 
+                                );
+                                // $this->response($data, REST_Controller::HTTP_OK);
+                        }
+                        else 
+                        {
+                            $uploadData = $this->upload->data();
+                            $data['thumbnail'] = $uploadData['file_name'];
+
+                            $message = $data;
+                        }
+                    }
+                    else
+                    {
+                        $data['thumbnail'] = base_url().'assets/frontend/default/img/course_thumbnail_placeholder.jpg';
+                    }
+                }
+            $data['date_added'] = strtotime(date('D, d-M-Y'));
+            $data['user_id'] = $this->input->post('trainer_id');       //get it from token
+            // $data['user_id'] = 1;       //get it from token
+            $data['is_admin'] = 0;
+            $data['status'] = 'active';
+
+
+            $result = $this->courses_model->update($data);
+            if( $result == true )
+            {
+                $message = "Course Successfully created";
+            }
+            else
+            {
+                $message = "Course Not created";
+            }
+            $data = array('message' => $message, 'status' => '200');
+            $this->response($data, REST_Controller::HTTP_OK);
+
+        } 
+        catch (Exception $e) 
+        {
+            $this->response('Something wents wrong', REST_Controller::HTTP_OK);
         }
+
+        // $data = ['post' => $_POST, 'files' => $_FILES];
+        // $this->response($data, REST_Controller::HTTP_OK);
     }
 
     public function delete_get($id)
