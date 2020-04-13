@@ -2,6 +2,9 @@
 
 defined('BASEPATH') OR exit('No direct script access allowed');
 
+
+
+
 /*
 |--------------------------------------------------------------------------
 | HTTP protocol
@@ -603,3 +606,5 @@ $config['allow_any_cors_domain'] = FALSE;
 |
 */
 $config['allowed_cors_origins'] = [];
+
+$config['Access-Control-Allow-Origin'] = TRUE;
