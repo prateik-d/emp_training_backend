@@ -69,7 +69,8 @@ class Courses extends REST_Controller {
         header('Access-Control-Allow-Headers: Accept,Accept-Language,Content-Language,Content-Type');
         
         $results = $this->courses_model->show_courses();
-        if( $results != false )
+        
+        if($results != '0')
         {
 
             foreach ($results as $result) 
@@ -77,12 +78,14 @@ class Courses extends REST_Controller {
                 $section_count = $this->courses_model->section_count($result->id);
                 $lesson_count = $this->courses_model->lesson_count($result->id);
                 $enroll_count = $this->courses_model->enroll_count($result->id);
+
                 $category = $this->Category_model->get_category_by_id($result->category_id);
          
                 $result->section_count = $section_count->section_count;
                 $result->lesson_count = $lesson_count->lesson_count;
                 $result->enroll_count = $enroll_count->enroll_count;
-                $result->category = $category->name;
+
+                $result->category = isset($category->name) ? $category->name : '';
             }
 
             $message = [
@@ -244,34 +247,42 @@ class Courses extends REST_Controller {
             }
            
 
-            if ($_FILES['thumbnail']['name'] != "") 
+
+            if(isset($_FILES['thumbnail']))
             {
-                // move_uploaded_file($_FILES[$course_media]['tmp_name'], 'uploads/thumbnails/course_thumbnails/'.$course_media.'_'.get_frontend_settings('theme').'_'.$course_id.'.jpg');
-
-                // move_uploaded_file($_FILES['thumbnail']['name'], 'uploads/thumbnails/course_thumbnails/'.time().'.jpg');
-
-
-
-                $config['upload_path']          = FCPATH.'/uploads/thumbnails/course_thumbnails/';
-                $config['allowed_types']        = 'gif|jpg|png|jpeg';
-                $config['max_size']             = 500;
-                $config['file_name']            = time();
-
-
-                $this->load->library('upload', $config);
-                if ( ! $this->upload->do_upload('thumbnail')) 
+                if ($_FILES['thumbnail']['name'] != "")
                 {
-                        $data = array(
-                            'status' => '400', 
-                            'error' => $this->upload->display_errors(), 
-                        );
+                    // move_uploaded_file($_FILES[$course_media]['tmp_name'], 'uploads/thumbnails/course_thumbnails/'.$course_media.'_'.get_frontend_settings('theme').'_'.$course_id.'.jpg');
+
+                    // move_uploaded_file($_FILES['thumbnail']['name'], 'uploads/thumbnails/course_thumbnails/'.time().'.jpg');
+
+
+
+                    $config['upload_path']          = FCPATH.'/uploads/thumbnails/course_thumbnails/';
+                    $config['allowed_types']        = 'gif|jpg|png|jpeg';
+                    $config['max_size']             = 500;
+                    $config['file_name']            = time();
+
+
+                    $this->load->library('upload', $config);
+                    if ( ! $this->upload->do_upload('thumbnail')) 
+                    {
+                            $data = array(
+                                'status' => '400', 
+                                'error' => $this->upload->display_errors(), 
+                            );
+                    }
+                    else 
+                    {
+                        $uploadData = $this->upload->data();
+                        $data['thumbnail'] = $uploadData['file_name'];
+
+                        $message = $data;
+                    }
                 }
-                else 
+                else
                 {
-                    $uploadData = $this->upload->data();
-                    $data['thumbnail'] = $uploadData['file_name'];
-
-                    $message = $data;
+                    $data['thumbnail'] = base_url().'assets/frontend/default/img/course_thumbnail_placeholder.jpg';
                 }
             }
             else
@@ -279,26 +290,26 @@ class Courses extends REST_Controller {
                 $data['thumbnail'] = base_url().'assets/frontend/default/img/course_thumbnail_placeholder.jpg';
             }
             
-            $data['date_added'] = strtotime(date('D, d-M-Y'));
-            $data['user_id'] = $this->input->post('trainer_id');       //get it from token
-            // $data['user_id'] = 1;       //get it from token
-            $data['is_admin'] = 0;
-            $data['status'] = 'active';
+            // $data['date_added'] = strtotime(date('D, d-M-Y'));
+            // $data['user_id'] = $this->input->post('trainer_id');       //get it from token
+            // // $data['user_id'] = 1;       //get it from token
+            // $data['is_admin'] = 0;
+            // $data['status'] = 'active';
            
 
 
-            $result = $this->courses_model->create($data);
-            if( $result == true )
-            {
-                $message = "Course Successfully created";
-            }
-            else
-            {
-                $message = "Course Not created";
-            }
-            $data = array('message' => $message, 'status' => '200');
-            $this->response($message, REST_Controller::HTTP_OK);
-            // $this->response($data, REST_Controller::HTTP_OK);
+            // $result = $this->courses_model->create($data);
+            // if( $result == true )
+            // {
+            //     $message = "Course Successfully created";
+            // }
+            // else
+            // {
+            //     $message = "Course Not created";
+            // }
+            // $data = array('message' => $message, 'status' => '200');
+            // $this->response($message, REST_Controller::HTTP_OK);
+            $this->response($data, REST_Controller::HTTP_OK);
    	    } 
         catch (Exception $e) 
         {
@@ -387,44 +398,47 @@ class Courses extends REST_Controller {
                 {
                     $data['video_url'] = '';
                 }
-
-
             
             }
-            if(!empty($_FILES['video_upload']['name']))
+            if(isset($_FILES['thumbnail']))
+            {
+
+                if ($_FILES['thumbnail']['name'] != "") 
                 {
 
-                    if ($_FILES['thumbnail']['name'] != "") 
+                    $config['upload_path']          = FCPATH.'/uploads/thumbnails/course_thumbnails/';
+                    $config['allowed_types']        = 'gif|jpg|png|jpeg';
+                    $config['max_size']             = 500;
+                    $config['file_name']            = time();
+
+
+                    $this->load->library('upload', $config);
+                    if ( ! $this->upload->do_upload('thumbnail')) 
                     {
-
-                        $config['upload_path']          = FCPATH.'/uploads/thumbnails/course_thumbnails/';
-                        $config['allowed_types']        = 'gif|jpg|png|jpeg';
-                        $config['max_size']             = 500;
-                        $config['file_name']            = time();
-
-
-                        $this->load->library('upload', $config);
-                        if ( ! $this->upload->do_upload('thumbnail')) 
-                        {
-                                $data = array(
-                                    'status' => '400', 
-                                    'error' => $this->upload->display_errors(), 
-                                );
-                                // $this->response($data, REST_Controller::HTTP_OK);
-                        }
-                        else 
-                        {
-                            $uploadData = $this->upload->data();
-                            $data['thumbnail'] = $uploadData['file_name'];
-
-                            $message = $data;
-                        }
+                            $data = array(
+                                'status' => '400', 
+                                'error' => $this->upload->display_errors(), 
+                            );
+                            // $this->response($data, REST_Controller::HTTP_OK);
                     }
-                    else
+                    else 
                     {
-                        $data['thumbnail'] = base_url().'assets/frontend/default/img/course_thumbnail_placeholder.jpg';
+                        $uploadData = $this->upload->data();
+                        $data['thumbnail'] = $uploadData['file_name'];
+
+                        $message = $data;
                     }
                 }
+                else
+                {
+                    $data['thumbnail'] = base_url().'assets/frontend/default/img/course_thumbnail_placeholder.jpg';
+                }
+            }
+            else
+            {
+                $data['thumbnail'] = base_url().'assets/frontend/default/img/course_thumbnail_placeholder.jpg';
+            }
+
             $data['date_added'] = strtotime(date('D, d-M-Y'));
             $data['user_id'] = $this->input->post('trainer_id');       //get it from token
             // $data['user_id'] = 1;       //get it from token
